@@ -147,7 +147,11 @@ export function DashboardCharts({ report }: { report: FinalReport }) {
           suffix={f.currentPrice ? ` → $${f.currentPrice.toFixed(0)}` : ""}
         />
         <BarChart title="Monthly Volume (M)" data={f.volumeHistory} unit="Shares in millions" />
-        <BarChart title="Recent Price Trend" data={f.profitHistory?.slice(-8)} unit="USD" />
+        <BarChart
+          title="Recent Price Trend"
+          data={f.priceHistory?.slice(-8) ?? f.profitHistory?.slice(-8)}
+          unit="USD"
+        />
         {f.return10Year != null && (
           <div style={{ background: YELLOW, border, boxShadow: hardShadowSm, padding: "14px" }}>
             <div style={{ fontSize: "10px", fontWeight: 800 }}>10-YEAR RETURN</div>

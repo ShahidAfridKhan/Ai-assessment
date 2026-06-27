@@ -33,6 +33,7 @@ export interface MarketData {
   return10Year?: number;
   currentPrice?: number;
   priceChart10Y?: ChartPoint[];
+  priceHistory?: ChartPoint[];
   revenueHistory?: ChartPoint[];
   profitHistory?: ChartPoint[];
   volumeHistory?: ChartPoint[];
@@ -116,6 +117,26 @@ async function fetchYahooChart(ticker: string): Promise<{
   }
 }
 
+async function searchYahooSymbol(query: string): Promise<{ symbol: string; companyName?: string } | null> {
+  try {
+    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const quote = Array.isArray(json?.quotes) ? json.quotes[0] : null;
+    if (!quote?.symbol) return null;
+    return {
+      symbol: quote.symbol,
+      companyName: quote.shortname ?? quote.longname ?? quote.symbol,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchTwelveDataStats(ticker: string): Promise<Partial<MarketData> | null> {
   const apiKey = process.env.TWELVE_DATA_API_KEY;
   if (!apiKey) return null;
@@ -176,7 +197,9 @@ function buildPriceChart(
 }
 
 export async function fetchMarketData(query: string): Promise<MarketData> {
-  const ticker = resolveTickerSymbol(query);
+  const initialTicker = resolveTickerSymbol(query);
+  const searchResult = await searchYahooSymbol(query).catch(() => null);
+  const ticker = searchResult?.symbol ?? initialTicker;
   const cacheKey = ticker.toUpperCase();
   const hit = cache.get(cacheKey);
   if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.data;
@@ -186,7 +209,10 @@ export async function fetchMarketData(query: string): Promise<MarketData> {
     fetchTwelveDataStats(ticker),
   ]);
 
-  const result: MarketData = { ticker: cacheKey, companyName: query };
+  const result: MarketData = {
+    ticker: cacheKey,
+    companyName: searchResult?.companyName ?? query,
+  };
 
   if (chart && chart.closes.length > 0) {
     const { meta, closes, timestamps, volumes } = chart;
@@ -200,12 +226,17 @@ export async function fetchMarketData(query: string): Promise<MarketData> {
       (meta.longName as string) ??
       (meta.shortName as string) ??
       stats?.companyName ??
+      searchResult?.companyName ??
       query;
     result.exchange = meta.fullExchangeName as string | undefined;
     result.currentPrice = price;
     result.fiftyTwoWeekHigh = hi52;
     result.fiftyTwoWeekLow = lo52;
     result.priceChart10Y = buildPriceChart(timestamps, closes);
+    result.priceHistory = buildPriceChart(
+      timestamps.slice(-8),
+      closes.slice(-8)
+    );
     result.return10Year = first > 0 ? (last - first) / first : undefined;
     result.return52Week =
       lo52 && lo52 > 0 ? (price - lo52) / lo52 : undefined;
@@ -215,14 +246,28 @@ export async function fetchMarketData(query: string): Promise<MarketData> {
     if (yearAgo > 0) result.return1Year = (last - yearAgo) / yearAgo;
 
     result.revenueHistory = result.priceChart10Y;
-    result.profitHistory = closes.slice(-8).map((c, i) => ({
-      label: `M${i + 1}`,
-      value: Math.round(c),
-    }));
-    result.volumeHistory = volumes.slice(-12).map((v, i) => ({
-      label: `M${i + 1}`,
-      value: Math.round(v / 1_000_000),
-    }));
+    result.profitHistory = closes.slice(-8).map((c, i) => {
+      const timestamp = timestamps[Math.max(0, timestamps.length - 8 + i)];
+      return {
+        label: timestamp
+          ? new Date(timestamp * 1000).toLocaleDateString("en-US", {
+              month: "short",
+            })
+          : `M${i + 1}`,
+        value: Math.round(c),
+      };
+    });
+    result.volumeHistory = volumes.slice(-12).map((v, i) => {
+      const timestamp = timestamps[Math.max(0, timestamps.length - 12 + i)];
+      return {
+        label: timestamp
+          ? new Date(timestamp * 1000).toLocaleDateString("en-US", {
+              month: "short",
+            })
+          : `M${i + 1}`,
+        value: Math.round(v / 1_000_000),
+      };
+    });
   }
 
   if (stats) {

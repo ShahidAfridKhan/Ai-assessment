@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useResearchAgent } from "@/hooks/useResearchAgent";
 import { Navbar } from "@/components/Navbar";
@@ -17,6 +17,7 @@ import { BG, YELLOW, ACCENT, border } from "@/lib/design";
 export default function ResearchPage() {
   const { steps, result, isLoading, error, startResearch, reset } = useResearchAgent();
   const [currentCompany, setCurrentCompany] = useState("");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const handleSearch = (company: string) => {
     setCurrentCompany(company);
@@ -29,6 +30,19 @@ export default function ResearchPage() {
 
   const isIdle = !isLoading && !result && !error;
   const showDashboard = isLoading || result;
+
+  useEffect(() => {
+    if (!isLoading) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isLoading]);
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: "#fff", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -78,6 +92,19 @@ export default function ResearchPage() {
                 loading={isLoading}
                 progress={progress}
               />
+
+              {isLoading && (
+                <div
+                  style={{
+                    marginTop: "18px",
+                    color: ACCENT,
+                    fontSize: "14px",
+                    fontWeight: 700,
+                  }}
+                >
+                  Research in progress • Elapsed time: {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, "0")}
+                </div>
+              )}
 
               {result && <DashboardCharts report={result} />}
 

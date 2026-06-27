@@ -64,10 +64,6 @@ export function ResearchDashboard({
 
   const metrics = [
     { label: growthLabel, val: growth, color: pctColor(f?.revenueGrowthYoY ?? f?.return1Year) },
-    { label: "Net Margin", val: margin, color: pctColor(f?.profitMargin) },
-    { label: "P/E Ratio", val: pe, color: "#000" },
-    { label: "Debt / Equity", val: debt, color: pctColor(f?.debtToEquity, true) },
-    { label: "Market Cap", val: mktCap, color: "#000" },
     { label: "52W Return", val: ret52, color: pctColor(f?.return52Week) },
   ];
 

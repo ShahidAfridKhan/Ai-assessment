@@ -1505,10 +1505,6 @@ export default function LandingPage() {
               {/* Metrics */}
               {[
                 { label: "Revenue Growth", val: "+8.3%", color: "#27ae60" },
-                { label: "Net Margin", val: "16.2%", color: "#27ae60" },
-                { label: "P/E Ratio", val: "24.1x", color: "#000" },
-                { label: "Debt / Equity", val: "0.09", color: "#27ae60" },
-                { label: "Market Cap", val: "$76.4B", color: "#000" },
                 { label: "52W Return", val: "+18.7%", color: "#27ae60" },
               ].map((m) => (
                 <div
