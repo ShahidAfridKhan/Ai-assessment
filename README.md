@@ -1,239 +1,264 @@
-# InvestIQ — AI Investment Research Agent
+<div align="center">
 
-> **Take-home assignment submission** — InsideIIM × Altuni AI Labs · AI Product Development Engineer internship
+# 📊 AlphaLens AI
 
----
+### Research Smarter. Invest Better.
 
-## 1. Overview
+**An autonomous AI agent that researches any public company in real time — fundamentals, news, sentiment, and risk — and streams back a transparent, math-backed BUY / HOLD / PASS verdict.**
 
-InvestIQ is a full-stack AI agent that takes any company name, autonomously researches it across multiple data sources in real time, and delivers a transparent **INVEST** or **PASS** decision backed by an explicit, weighted rubric. Built with Next.js 14 App Router, LangGraph.js, and Anthropic Claude, the app streams each research step to the browser live — the user watches the agent "think" rather than staring at a spinner.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-ai--assessment--eight--eta.vercel.app-ffe17c?style=for-the-badge&logo=vercel&logoColor=black)](https://ai-assessment-eight-eta.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![LangGraph.js](https://img.shields.io/badge/LangGraph.js-StateGraph-1C3C3C?style=flat-square)](https://langchain-ai.github.io/langgraphjs/)
+[![Gemini](https://img.shields.io/badge/LLM-Gemini%202.5%20Flash-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 
-The system is designed for a reviewer to trust: every verdict shows its math, every news citation is a real URL, and every data gap is flagged transparently rather than hidden.
+[**🚀 Try it live**](https://ai-assessment-eight-eta.vercel.app/research) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [How the Verdict Is Computed](#-the-decision-engine)
 
----
-
-## 2. How to Run It
-
-### Prerequisites
-- Node.js 18+
-- API keys: Anthropic, Tavily, FMP (see below)
-
-### Steps
-
-```bash
-git clone <your-repo-url>
-cd investiq
-
-# Install dependencies
-npm install
-
-# Copy and fill in API keys
-cp .env.local.example .env.local
-# → edit .env.local with your keys
-
-# Start dev server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) and enter a company name.
-
-### Required API Keys (all have free tiers)
-
-| Key | Where to get it | Free tier |
-|-----|----------------|-----------|
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) | $5 trial credit |
-| `TAVILY_API_KEY` | [tavily.com](https://tavily.com) | 1,000 searches/month |
-| `FMP_API_KEY` | [financialmodelingprep.com](https://financialmodelingprep.com) | 250 requests/day |
-
-Optional (only needed if switching LLM provider):
-- `GROQ_API_KEY` — [console.groq.com](https://console.groq.com)
-- `OPENAI_API_KEY` — [platform.openai.com](https://platform.openai.com)
+</div>
 
 ---
 
-## 3. How It Works
+## 📖 Overview
 
-### LangGraph Node Sequence
+Type a company name — `Tesla`, `Infosys`, `Zomato`, `Reliance Industries` — and AlphaLens AI autonomously:
 
-The backend runs a **LangGraph.js `StateGraph`** with 7 sequential nodes:
+1. **Resolves** it to a real, listed ticker
+2. **Collects** live price history, financial ratios, and recent news **in parallel**
+3. **Reasons** over the combined signal with an LLM, scored against an explicit 5-factor rubric
+4. **Streams** every step to the browser over Server-Sent Events, so you watch the agent work instead of staring at a spinner
+
+The output is a full research dashboard: a 0–100 investment score, a BUY/HOLD/PASS call, a SWOT breakdown, categorized risks, sector competitors, and 10-year price/return charts — all rendered in a distinctive **neo-brutalist** UI (hard black shadows, yellow accents, dark forest-green background).
+
+The whole pipeline targets **under 15 seconds** end-to-end, and runs on **free-tier APIs only** — no paid keys are required to get a working demo.
+
+> Built as a take-home submission for the **InsideIIM × Altuni AI Labs — AI Product Development Engineer** internship assessment.
+
+---
+
+## ✨ Features
+
+| | |
+|---|---|
+| 🤖 **Autonomous Research Agent** | A LangGraph.js `StateGraph` resolves the company, fetches data, and synthesizes a verdict with no manual steps |
+| 📡 **Real-Time Streaming** | Server-Sent Events push live step updates (`Finding Company` → `Collecting Financial Data` → `Generating AI Report` → `Finalizing Report`) to the UI as they actually complete — no fake timers |
+| 🎯 **Transparent Scoring** | Every verdict shows its rubric math: 5 weighted dimensions combine into one auditable 0–100 score |
+| 📈 **Market Data** | 10-year price history, 52-week high/low, returns (1Y/52W/10Y), P/E, margins, debt/equity, EPS, ROE |
+| 📰 **News & Sentiment** | Recent headlines pulled from live sources with automatic positive/negative/neutral classification |
+| 🧠 **SWOT + Risk Categorization** | LLM-generated strengths, weaknesses, opportunities, threats, plus 3–5 risks tagged by severity (LOW/MEDIUM/HIGH) |
+| 🏢 **Competitor Benchmarking** | 2–4 sector peers surfaced with their own ratings for context |
+| 🌍 **Global Ticker Support** | Works for US tickers and NSE-listed Indian stocks (`Tata Motors`, `Reliance`, `Infosys`, etc.) out of the box |
+| 🛡️ **Graceful Degradation** | If the LLM call times out or a data source fails, a deterministic rule-based scorer kicks in — the agent never crashes, it just degrades transparently |
+| 🆓 **Zero-Config Friendly** | Price data (Yahoo Finance) and news (Google News RSS) work with **no API key at all**; Gemini, GNews, and TwelveData are optional upgrades |
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js 14 (App Router) + TypeScript
+- **Agent Orchestration:** [LangGraph.js](https://langchain-ai.github.io/langgraphjs/) `StateGraph` + `@langchain/core`
+- **LLM:** Google Gemini 2.5 Flash by default — swappable to Anthropic Claude, Groq (Llama 3.3), or OpenAI via one env var
+- **Structured Output:** Zod schemas enforced through `withStructuredOutput`
+- **Styling:** Tailwind CSS — hand-built **neo-brutalist** design system (`lib/design.ts`): hard 4px black shadows, `#ffe17c` yellow accent, `#171e19` forest-green background
+- **Animation:** Framer Motion
+- **Charts:** Hand-rolled inline SVG line charts (no charting library dependency)
+- **Data Sources:** Yahoo Finance Chart API, Twelve Data, GNews API, Google News RSS, Wikipedia REST API
+- **Streaming:** Native `ReadableStream` + Server-Sent Events (no socket library)
+- **Deployment:** Vercel
+
+---
+
+## 🏗️ Architecture
+
+### Agent Pipeline
+
+The production graph (`lib/agent/graph.ts`) is a lean **4-node pipeline** purpose-built for speed — the agent is designed to feel instant, not just "eventually correct":
 
 ```
-resolveCompany
-    │  Web search → LLM → { name, ticker, exchange, sector, confidence }
-    ▼
-fetchFundamentals
-    │  FMP API → { revenueGrowth, margin, D/E, P/E, FCF }
-    ▼
-fetchNewsAndSentiment
-    │  Tavily news search → LLM sentiment scoring → { newsItems[], score, summary }
-    ▼
-fetchIndustryContext
-    │  Tavily sector search → LLM summarization → sector context paragraph
-    ▼
-assessRisk
-    │  LLM synthesis of all signals → 3–5 specific, falsifiable risks
-    ▼
-synthesizeDecision
-    │  LLM withStructuredOutput → rubric scoring → INVEST/PASS verdict
-    ▼
-formatReport
-    │  Pure transformation → final JSON contract
+START
+  │
+  ▼
+┌─────────────────────┐   Resolve company name → ticker via Yahoo
+│   resolveCompany     │   symbol search + Wikipedia summary for context
+└──────────┬───────────┘
+           ▼
+┌─────────────────────┐   Promise.all() — market data (Yahoo + Twelve Data)
+│   fetchAllParallel    │   and news (GNews / Google News RSS) fetched
+└──────────┬───────────┘   concurrently, not sequentially
+           ▼
+┌─────────────────────┐   Single structured-output LLM call → rubric scores,
+│    fastAnalyze        │   verdict, SWOT, risks, competitors. 18s timeout
+└──────────┬───────────┘   with a deterministic rule-based fallback
+           ▼
+┌─────────────────────┐   Pure transformation → assembles the final
+│    formatReport       │   JSON report contract for the client
+└──────────┬───────────┘
+           ▼
+          END
 ```
+
+> **Note on `lib/agent/nodes/`:** the directory also contains earlier sequential nodes (`fetchFundamentals`, `fetchNewsAndSentiment`, `fetchIndustryContext`, `assessRisk`, `synthesizeDecision`, `generateInsights`) from an earlier 7-node design iteration. They're kept in the repo for reference but are **not wired into the compiled graph** — `fetchAllParallel` + `fastAnalyze` replaced them to cut latency from ~30s+ down to the current <15s target.
 
 ### Streaming Mechanism
 
-The API route (`/api/research`) uses LangGraph's **`streamEvents()` API** — an `AsyncGenerator` that emits `on_chain_end` events for every graph node as it completes. These are piped into a `ReadableStream` backed SSE response. The browser parses `event: step` and `event: final` events from the stream using `fetch()` + `ReadableStream.getReader()`.
+`app/api/research/route.ts` calls LangGraph's `streamEvents()` (`v2`), which emits an `AsyncGenerator` of real run events for every node. The route listens for `on_chain_start` / `on_chain_end`, builds a one-line human-readable summary per node (e.g. `"P/E 52.1 · Growth 1.1% · 6 news articles"`), and pipes each as a Server-Sent Event into a `ReadableStream`:
 
-There are no `setTimeout` fakes — every step event is a real LangGraph node completion.
-
-### The Decision Rubric
-
-The `synthesizeDecision` node uses `LangChain.withStructuredOutput(Zod schema)` with this exact rubric in the system prompt:
-
-| Dimension | Weight | What it measures |
-|-----------|--------|-----------------|
-| Fundamentals | 35% | Margins, debt load, cash flow health |
-| Valuation | 20% | P/E vs sector norms, price attractiveness |
-| Growth | 20% | Revenue/earnings trajectory |
-| Sentiment | 15% | Recent news tone and market perception |
-| Risk | 10% | Downside risk severity (higher = safer) |
-
-**Weighted total formula:**
 ```
-score = (fundamentals × 0.35) + (growth × 0.20) + (sentiment × 0.15)
-      + (valuation × 0.20) + (risk × 0.10)
-
-verdict = score ≥ 60 ? "INVEST" : "PASS"
+event: step   { node, status: "active" | "done", label, summary }
+event: final  { ...FinalReport }
+event: error  { message }
 ```
 
-The server **recomputes** the weighted total from the LLM's dimension scores (instead of trusting the LLM's arithmetic) to guarantee correctness.
+The browser (`hooks/useResearchAgent.ts`) reads this with `fetch()` + `ReadableStream.getReader()` — no WebSocket, no polling, and no `setTimeout` fakery. Every step shown on screen is a real graph-node completion.
+
+### The Decision Engine
+
+`fastAnalyze` asks the LLM for a single structured response (Zod-validated) covering sentiment, SWOT, risks, competitors, and a 5-dimension rubric:
+
+| Dimension | Weight | Signal |
+|---|---|---|
+| Fundamentals | 35% | Profit margin, debt load, cash flow health |
+| Growth | 20% | Revenue growth / price momentum trajectory |
+| Sentiment | 15% | Recent news tone |
+| Valuation | 20% | P/E relative to a reasonable band |
+| Risk | 10% | Downside severity (higher score = safer) |
+
+```
+weightedTotal = fundamentals×0.35 + growth×0.20 + sentiment×0.15
+              + valuation×0.20 + risk×0.10
+
+verdict = score ≥ 72 → BUY
+          score ≥ 52 → HOLD
+          score < 52 → PASS
+```
+
+**Two layers of reliability, by design:**
+- When real market data is available, the server **recomputes** the fundamentals/growth/valuation/risk scores deterministically from the actual financial ratios (rather than trusting the LLM's arithmetic) — the LLM is used for sentiment, narrative, SWOT, and competitor discovery, not the math.
+- If the LLM call exceeds an **18-second timeout** or throws, `ruleBasedVerdict()` computes a fully deterministic score from whatever fundamentals were fetched — margin, growth, 10-year return, P/E, and leverage — so the agent **always returns a verdict**, never a hard failure.
 
 ---
 
-## 4. Key Decisions & Trade-offs
+## 📡 Data Sources
 
-### Financial Data API: FMP over Alpha Vantage
-**Financial Modeling Prep** was chosen for three reasons:
-1. **Free tier ceiling**: 250 requests/day vs. Alpha Vantage's 25/day — 10× more headroom, critical since the agent makes 2–3 FMP calls per run and a reviewer will run it many times.
-2. **Data structure**: FMP's `key-metrics-ttm` endpoint returns all key ratios in one call; Alpha Vantage requires multiple calls + manual parsing.
-3. **Consistency**: FMP's JSON schema is more consistent across ticker formats.
+| Source | Used for | API key required? |
+|---|---|---|
+| **Yahoo Finance Chart API** | Price history, 52-week high/low, returns, market cap basis | ❌ No |
+| **Yahoo Finance Search** | Ticker resolution from a free-text company name | ❌ No |
+| **Google News RSS** | News fallback when GNews isn't configured | ❌ No |
+| **Wikipedia REST API** | Company description / context for resolution | ❌ No |
+| **Twelve Data** | P/E, margins, debt/equity, EPS, ROE, sector/industry | ✅ Optional (free tier) |
+| **GNews API** | Primary recent-news source with richer metadata | ✅ Optional (free tier) |
+| **Gemini 2.5 Flash** | Sentiment, SWOT, risk synthesis, rubric scoring | ✅ Yes (free tier via AI Studio) |
 
-### Sequential vs. Parallel Execution
-The graph runs **sequentially** by design. Fundamentals and news fetching are logically independent and could run in parallel branches (saving ~3s), but:
-1. Sequential is far easier to debug and explain in a review.
-2. The bottleneck is the LLM synthesis node (~4–6s), not the I/O nodes (~1–2s).
-3. Streaming step-by-step progress is much simpler with a linear graph — parallel branches emit events out of order.
-
-Parallel execution is the #1 listed improvement (see Section 6).
-
-### LLM: Anthropic Claude Sonnet (default)
-Claude Sonnet (`claude-sonnet-4-5`) was chosen for the synthesis node because:
-- Produces the most reliable, internally-consistent structured JSON via `withStructuredOutput`
-- Consistently follows multi-constraint prompts (rubric scoring + reasoning + format)
-- Groq/Llama-3 is 3–5× faster and cheaper but shows ~15% higher rate of malformed JSON on structured output calls in testing
-
-The provider is **swappable** via `LLM_PROVIDER=groq|openai|anthropic` env var. For a production system, a hybrid approach (Groq for cheap nodes like `resolveCompany`, Claude for `synthesizeDecision`) would be optimal.
-
-### INVEST Threshold: 60/100
-The 60-point threshold mirrors the conventional academic "passing grade" — demanding enough to filter out mediocre companies without requiring near-perfection. It maps naturally to: a company needs to be above average on most dimensions to earn a buy recommendation. This is documented in the synthesis prompt and in the UI.
-
-### Caching
-1-hour in-memory cache (JavaScript `Map`) for FMP fundamentals, keyed by ticker symbol. This prevents burning free-tier quota during repeated testing. **Production alternative**: Vercel KV (Redis) for distributed caching across serverless instances.
-
-### Deliberate Scope Limits (given 7-day window)
-- **No authentication**: Any user can run research. Adding NextAuth.js + saved history would be the obvious next step.
-- **No portfolio management**: Multi-company comparison, portfolio allocation sizing, and portfolio-level risk are out of scope.
-- **No real-time price data**: Current price + intraday momentum would require a WebSocket provider (e.g. Polygon.io).
-- **No backtesting**: Validating the rubric against historical outcomes would require a historical database.
+This tiered design means the app **runs end-to-end with only a Gemini key** — Yahoo Finance and Google News RSS need no authentication at all, so a reviewer can clone, add one key, and get real results immediately.
 
 ---
 
-## 5. Example Runs
+## 🚀 Getting Started
 
-### Tesla (TSLA) — Large, well-covered public company
+### Prerequisites
+- Node.js 18+
+- A free [Google AI Studio](https://aistudio.google.com/) API key (Gemini)
 
-```json
-{
-  "company": { "name": "Tesla, Inc.", "ticker": "TSLA", "exchange": "NASDAQ", "sector": "Consumer Cyclical" },
-  "decision": {
-    "verdict": "INVEST",
-    "confidence": 68,
-    "reasoning": [
-      "Revenue grew 1.1% YoY (slowing from 37% in 2022) — growth premium is fading but base is massive",
-      "Net margin at 5.5% shows compression from peak 15%, flagged as a trend to watch",
-      "Sentiment slightly positive: FSD progress and energy storage business gaining traction offset EV price war concerns",
-      "P/E of 52 is elevated vs automotive sector median (12) but justified by software/energy segments",
-      "[Regulatory] FSD approval delays in EU and China remain the single largest growth block"
-    ]
-  },
-  "rubricScores": { "fundamentals": 58, "growth": 55, "sentiment": 62, "valuation": 42, "risk": 55 },
-  "weightedTotal": 54.3
-}
+### Installation
+
+```bash
+git clone https://github.com/ShahidAfridKhan/Ai-assessment.git
+cd Ai-assessment
+
+npm install
+
+cp .env.local.example .env.local
+# → add your GEMINI_API_KEY at minimum
+
+npm run dev
 ```
 
-### Infosys (INFY) — IT services giant (NSE/NYSE listed)
+Open [http://localhost:3000](http://localhost:3000), click **Try AlphaLens Free**, and enter any company name.
 
-```json
-{
-  "company": { "name": "Infosys Limited", "ticker": "INFY", "exchange": "NYSE", "sector": "Technology" },
-  "decision": {
-    "verdict": "INVEST",
-    "confidence": 71,
-    "reasoning": [
-      "Revenue growth of 1.4% YoY is modest but stable — IT services demand recovering in H2 2024",
-      "Net margin of 16.2% is industry-leading for tier-1 IT services",
-      "Debt/equity of 0.09 signals near-zero leverage — exceptionally conservative balance sheet",
-      "P/E of 24 is reasonable vs. sector median of 28 — modest discount to peers",
-      "Sentiment positive: large deal wins in AI/cloud modernization announced in Q3 2024"
-    ]
-  },
-  "rubricScores": { "fundamentals": 78, "growth": 52, "sentiment": 68, "valuation": 72, "risk": 80 },
-  "weightedTotal": 70.5
-}
+### Environment Variables
+
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `LLM_PROVIDER` | No | `gemini` | `gemini` \| `anthropic` \| `groq` \| `openai` |
+| `GEMINI_API_KEY` | ✅ Yes (if using default provider) | — | [aistudio.google.com](https://aistudio.google.com/) |
+| `GEMINI_MODEL` | No | `gemini-2.5-flash` | Override the Gemini model |
+| `GNEWS_API_KEY` | No | — | [gnews.io](https://gnews.io/) free tier; falls back to Google News RSS if unset |
+| `TWELVE_DATA_API_KEY` | No | — | [twelvedata.com](https://twelvedata.com/) free tier; adds P/E, margins, market cap |
+| `ANTHROPIC_API_KEY` | No | — | Only needed if `LLM_PROVIDER=anthropic` |
+| `GROQ_API_KEY` | No | — | Only needed if `LLM_PROVIDER=groq` |
+| `OPENAI_API_KEY` | No | — | Only needed if `LLM_PROVIDER=openai` |
+
+---
+
+## 📁 Project Structure
+
 ```
-
-### OpenAI (private) — Tests graceful degradation
-
-```json
-{
-  "company": { "name": "OpenAI", "ticker": null, "sector": "Artificial Intelligence", "confidence": "medium" },
-  "decision": {
-    "verdict": "PASS",
-    "confidence": 42,
-    "reasoning": [
-      "No public financial data available — company is private. Rubric relies entirely on qualitative signals.",
-      "Sentiment strongly positive: GPT-4o and o1 launches drove exceptional press coverage in 2024",
-      "Valuation cannot be assessed — last reported $157B valuation in funding round, revenue estimates vary widely",
-      "Competition from Google Gemini, Anthropic Claude, and Meta Llama poses meaningful moat erosion risk",
-      "PASS recommended due to inaccessible public data — not a negative signal on the company itself"
-    ]
-  },
-  "rubricScores": { "fundamentals": 20, "growth": 50, "sentiment": 85, "valuation": 20, "risk": 35 },
-  "weightedTotal": 36.5,
-  "dataLimitations": ["Company is private — no public financial data available from FMP"]
-}
+Ai-assessment/
+├── app/
+│   ├── api/research/route.ts     # SSE streaming endpoint
+│   ├── research/page.tsx         # Research dashboard page
+│   ├── page.tsx                  # Marketing landing page
+│   └── layout.tsx                # Root layout + metadata
+├── components/
+│   ├── research/
+│   │   ├── ResearchDashboard.tsx # Main report layout
+│   │   ├── DashboardCharts.tsx   # Inline SVG price/return charts
+│   │   ├── DashboardExtras.tsx   # SWOT, risks, competitors
+│   │   ├── ResearchStepTracker.tsx # Live agent step UI
+│   │   └── SearchBar.tsx
+│   ├── Navbar.tsx, DecisionBadge.tsx, NewsList.tsx, RiskList.tsx, ...
+├── hooks/
+│   └── useResearchAgent.ts       # Client-side SSE consumer
+├── lib/
+│   ├── agent/
+│   │   ├── graph.ts              # Compiled 4-node StateGraph
+│   │   ├── state.ts              # Shared agent state schema
+│   │   ├── nodes/                # resolveCompany, fetchAllParallel, fastAnalyze, formatReport (+ legacy nodes)
+│   │   └── tools/                # marketData, gnews, wikipedia, yahooFast, webSearch, financialData
+│   ├── llm.ts                    # Provider-swappable LLM factory
+│   └── design.ts                 # Neo-brutalist design tokens
+└── .env.local.example
 ```
 
 ---
 
-## 6. What I'd Improve With More Time
+## 🎨 Design System
 
-1. **Parallel node execution**: Run `fetchFundamentals` and `fetchNewsAndSentiment` as concurrent LangGraph branches, saving 3–5s per run.
-2. **Real-time price data**: Integrate Polygon.io WebSocket for live price, volume, and RSI — currently the rubric is entirely backward-looking.
-3. **Backtesting the rubric**: Validate the 60-point threshold against a dataset of historical verdicts and actual stock performance 90 days out.
-4. **Multi-turn Q&A**: Allow the user to ask follow-up questions about the generated report ("Why is the valuation score low?" / "What would move this to INVEST?").
-5. **Persistent caching**: Replace the in-memory `Map` with Vercel KV (Redis) for distributed caching across serverless instances and longer TTLs.
-6. **Authentication + history**: NextAuth.js + Postgres (via Vercel Postgres) for saved research history per user.
-7. **Multi-company comparison**: Allow side-by-side comparison of 2–3 companies on the same rubric.
-8. **Confidence calibration**: Track LLM calibration over time — does a 70-confidence INVEST actually outperform a 45-confidence PASS?
-9. **Email/Slack alerts**: "Alert me if a company I've researched crosses the INVEST/PASS threshold" — requires a cron job and persistent storage.
+The UI runs on a small, hand-rolled **neo-brutalist** token set (`lib/design.ts`) rather than a component library default:
+
+```ts
+YELLOW = "#ffe17c"        // primary accent
+BG     = "#171e19"        // dark forest-green background
+ACCENT = "#b7c6c2"
+hardShadow   = "4px 4px 0px #000000"   // signature offset black shadow
+border       = "2px solid #000000"
+```
+
+Typography pairs **Inter** (UI text) with **JetBrains Mono** (tickers, metrics, code-style figures) for a "Bloomberg terminal meets indie SaaS" feel.
 
 ---
 
-## 7. Build Notes
+## 🗺️ Roadmap
 
-This project was built using [Antigravity](https://antigravity.ai) (Google DeepMind's AI coding assistant) as part of the take-home assignment. The full build conversation transcript is available in the submission as per the assignment's bonus point note.
+- [ ] Parallelize `fastAnalyze` sentiment scoring with the rubric-recompute step for further latency cuts
+- [ ] Real-time/intraday price + volume via a WebSocket provider
+- [ ] Multi-company side-by-side comparison view
+- [ ] Persistent caching (Redis/Vercel KV) shared across serverless instances
+- [ ] Auth + saved research history per user
+- [ ] Backtest the 72/52 BUY/HOLD threshold against historical verdict accuracy
 
-**Architecture pattern**: The agent follows the "Research → Synthesize → Format" pattern common in production LLM pipelines. Each node has a clear contract (input state fields → output state fields), making it easy to test nodes in isolation and swap implementations without touching the graph wiring.
+---
 
-**Error philosophy**: Every node is wrapped in a try/catch that appends to `state.errors` rather than throwing. This means a company with sparse data (private companies, obscure tickers) still produces a final verdict — one that explicitly documents its limitations. "Failing gracefully and transparently" is a first-class design requirement.
+## 👤 Author
+
+**Shahid Afrid Khan**
+B.Tech CSE (Data Science), Lovely Professional University
+[GitHub](https://github.com/ShahidAfridKhan) · [LeetCode](https://leetcode.com/shahidafrid_037)
+
+---
+
+<div align="center">
+
+Built with Next.js, LangGraph.js, and a healthy amount of API fallback logic.
+
+</div>
